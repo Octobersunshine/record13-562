@@ -92,10 +92,18 @@ func (h *PhaseHandler) updatePhase(w http.ResponseWriter, r *http.Request, proje
 
 	phase, err := h.store.UpdatePhase(projectID, phaseType, req.Status)
 	if err != nil {
+		if isValidationError(err) {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, phase)
+}
+
+func isValidationError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "前序阶段")
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

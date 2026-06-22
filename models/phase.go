@@ -16,6 +16,17 @@ var PhaseNames = map[PhaseType]string{
 	PhasePainting:           "油漆",
 }
 
+var PhaseOrder = []PhaseType{
+	PhasePlumbingElectrical,
+	PhaseMasonry,
+	PhasePainting,
+}
+
+var PhasePrerequisites = map[PhaseType]PhaseType{
+	PhaseMasonry:  PhasePlumbingElectrical,
+	PhasePainting: PhaseMasonry,
+}
+
 type PhaseStatus string
 
 const (

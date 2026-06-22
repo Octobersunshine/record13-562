@@ -3,6 +3,7 @@ package store
 import (
 	"decoration/models"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -100,21 +101,43 @@ func (s *memoryStore) UpdatePhase(projectID, phaseType string, status models.Pha
 		return nil, errors.New("project not found")
 	}
 
-	now := time.Now()
+	targetIdx := -1
 	for i := range phases {
 		if string(phases[i].PhaseType) == phaseType {
-			phases[i].Status = status
-			phases[i].UpdatedAt = now
-			if status == models.StatusCompleted {
-				phases[i].CompletedAt = &now
-			} else {
-				phases[i].CompletedAt = nil
+			targetIdx = i
+			break
+		}
+	}
+	if targetIdx == -1 {
+		return nil, errors.New("phase not found")
+	}
+
+	if status == models.StatusInProgress || status == models.StatusCompleted {
+		prereq, hasPrereq := models.PhasePrerequisites[models.PhaseType(phaseType)]
+		if hasPrereq {
+			prereqCompleted := false
+			for i := range phases {
+				if phases[i].PhaseType == prereq && phases[i].Status == models.StatusCompleted {
+					prereqCompleted = true
+					break
+				}
 			}
-			s.phases[projectID] = phases
-			updated := phases[i]
-			return &updated, nil
+			if !prereqCompleted {
+				return nil, fmt.Errorf("前序阶段[%s]尚未完成，无法更新阶段[%s]",
+					models.PhaseNames[prereq], models.PhaseNames[models.PhaseType(phaseType)])
+			}
 		}
 	}
 
-	return nil, errors.New("phase not found")
+	now := time.Now()
+	phases[targetIdx].Status = status
+	phases[targetIdx].UpdatedAt = now
+	if status == models.StatusCompleted {
+		phases[targetIdx].CompletedAt = &now
+	} else {
+		phases[targetIdx].CompletedAt = nil
+	}
+	s.phases[projectID] = phases
+	updated := phases[targetIdx]
+	return &updated, nil
 }
