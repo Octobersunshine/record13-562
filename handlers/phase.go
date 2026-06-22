@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type PhaseHandler struct {
@@ -39,6 +40,10 @@ func (h *PhaseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Error(w, "project_id required", http.StatusBadRequest)
 	case http.MethodPut, http.MethodPatch:
+		if len(parts) >= 3 && parts[2] == "planned_date" {
+			h.setPlannedDate(w, r, parts[0], parts[1])
+			return
+		}
 		if len(parts) >= 2 {
 			h.updatePhase(w, r, parts[0], parts[1])
 			return
@@ -104,6 +109,33 @@ func (h *PhaseHandler) updatePhase(w http.ResponseWriter, r *http.Request, proje
 
 func isValidationError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "前序阶段")
+}
+
+func (h *PhaseHandler) setPlannedDate(w http.ResponseWriter, r *http.Request, projectID, phaseType string) {
+	var req models.SetPlannedDateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.PlannedEndDate == "" {
+		http.Error(w, "planned_end_date is required", http.StatusBadRequest)
+		return
+	}
+	parsed, err := time.Parse(time.RFC3339, req.PlannedEndDate)
+	if err != nil {
+		parsed, err = time.Parse("2006-01-02", req.PlannedEndDate)
+		if err != nil {
+			http.Error(w, "invalid planned_end_date format, use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+	}
+
+	phase, err := h.store.SetPlannedEndDate(projectID, phaseType, parsed)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, phase)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

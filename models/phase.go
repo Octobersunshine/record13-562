@@ -36,16 +36,52 @@ const (
 )
 
 type ConstructionPhase struct {
-	ID          string       `json:"id"`
-	ProjectID   string       `json:"project_id"`
-	PhaseType   PhaseType    `json:"phase_type"`
-	PhaseName   string       `json:"phase_name"`
-	Status      PhaseStatus  `json:"status"`
-	CompletedAt *time.Time   `json:"completed_at,omitempty"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	CreatedAt   time.Time    `json:"created_at"`
+	ID             string       `json:"id"`
+	ProjectID      string       `json:"project_id"`
+	PhaseType      PhaseType    `json:"phase_type"`
+	PhaseName      string       `json:"phase_name"`
+	Status         PhaseStatus  `json:"status"`
+	PlannedEndDate *time.Time   `json:"planned_end_date,omitempty"`
+	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
+	UpdatedAt      time.Time    `json:"updated_at"`
+	CreatedAt      time.Time    `json:"created_at"`
+}
+
+type ProjectInfo struct {
+	ProjectID   string    `json:"project_id"`
+	ForemanName string    `json:"foreman_name"`
+	ForemanPhone string   `json:"foreman_phone"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type AlertSeverity string
+
+const (
+	SeverityWarning AlertSeverity = "warning"
+	SeverityCritical AlertSeverity = "critical"
+)
+
+type PhaseAlert struct {
+	ID          string         `json:"id"`
+	ProjectID   string         `json:"project_id"`
+	PhaseType   PhaseType      `json:"phase_type"`
+	PhaseName   string         `json:"phase_name"`
+	Severity    AlertSeverity  `json:"severity"`
+	Message     string         `json:"message"`
+	OverdueDays int            `json:"overdue_days"`
+	NotifiedAt  time.Time      `json:"notified_at"`
 }
 
 type UpdatePhaseRequest struct {
 	Status PhaseStatus `json:"status"`
+}
+
+type SetPlannedDateRequest struct {
+	PlannedEndDate string `json:"planned_end_date"`
+}
+
+type SetForemanRequest struct {
+	ForemanName  string `json:"foreman_name"`
+	ForemanPhone string `json:"foreman_phone"`
 }
